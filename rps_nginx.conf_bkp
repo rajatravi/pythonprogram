@@ -1,0 +1,15 @@
+filter{
+	if [fields][type] == "rps-log" {
+   		if [source] == "/var/log/nginx/access.log" { 
+   			grok {
+       				match => { "message" => ["%{IPORHOST:[nginx][access][remote_ip]} - %{DATA:[nginx][access][user_name]} \[%{HTTPDATE:[nginx][access][time]}\] \"%{WORD:[nginx][access][method]} %{URIPATH:url}"] }
+ 			     }
+   }
+
+   elseif [source] == "/var/log/nginx/error.log" {
+   grok {
+        match => { "message" => ["%{GREEDYDATA:err_message}"]}
+      	}
+   }
+}
+}

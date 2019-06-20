@@ -1,0 +1,15 @@
+AWS_ID ((Root|Self)=(\w+-\w+-\w+|-)|-)((;(Root|Self)=(\w+-\w+-\w+|-))|)
+NGINXACCESSBLOG %{IPORHOST:clientip} %{USERNAME} %{USERNAME:remote_user} \[%{HTTPDATE:timestamp}\] \"(?:%{WORD:verb} %{NOTSPACE:request}(?: HTTP/%{NUMBER:httpversion})?|%{DATA:rawrequest})\" %{NUMBER:response} (?:%{NUMBER:bytes}|-) %{QS:referrer} %{QS:agent} %{QS:http_x_forwarded_for} %{NUMBER:request_time:float} (?:%{NUMBER:upstream_time:float}|-) %{USERNAME:sent_http_resp_uuid} %{USERNAME:pipe} %{USERNAME:machine_ip} %{USERNAME:u_role} (?:%{NUMBER:http_x_runtime:float}|-) (?:%{USERNAME:cookie_login_impersonate_id}|-) (?:%{NOTSPACE:cookie_u_email}|-)(?: |)(?:%{WORD:device}|-|) %{AWS_ID:aws_id} \"(?:%{WORD:virgin}|)\" \"%{NOTSPACE:pass_server}\" \"%{NOTSPACE:pass_server_ssl}\" \"%{WORD:scheme}\" \"(?:%{WORD:is_varnish}|)\" \"(?:%{WORD:is_varnish_hit}|)\"
+
+# this will often be the only line:
+RAILS3HEAD (?m)Started %{WORD:verb} "%{URIPATHPARAM:request}" for %{IPORHOST:clientip} at (?<start_timestamp>%{YEAR}-%{MONTHNUM}-%{MONTHDAY} %{HOUR}:%{MINUTE}:%{SECOND} %{ISO8601_TIMEZONE})
+# for some a strange reason, params are stripped of {} - not sure that's a good idea.
+RPROCESSING \W*Processing by %{RCONTROLLER} as (?<format>\S+)?
+PARAMS (?:\W*Parameters: {%{DATA:params}}\W*)
+RAILS3FOOT Completed %{NUMBER:response}%{DATA} in %{NUMBER:totalms}ms %{RAILS3PROFILE}%{GREEDYDATA}
+RAILS3PROFILE (?:\(Views: %{NUMBER:viewms}ms \| ActiveRecord: %{NUMBER:activerecordms}ms \| Elasticsearch: %{NUMBER:elasticsearchms}|\(ActiveRecord: %{NUMBER:activerecordms}ms)?
+META_DATA META INFO - %{NUMBER:user_id} %{NUMBER:destination_id} %{NUMBER:requested_trip_id} %{NUMBER:quote_id} %{NUMBER:invoice_id} %{NUMBER: seo_package_id}
+# putting it all together
+PASSENGERINFO ^(?<timestamp>%{YEAR}-%{MONTHNUM}-%{MONTHDAY} %{HOUR}:%{MINUTE}:%{SECOND})%{SPACE}pid:%{NUMBER:pid} %{WORD:log_level}(?: %{NOTSPACE:file}|)  %{USERNAME:sent_http_resp_uuid} (?:%{URIPATH:uri_path}|) - \[(?:%{RAILS3HEAD}|%{RPROCESSING}|%{RAILS3FOOT}|%{RAILS3PROFILE}|%{PARAMS}|%{META_DATA}|%{GREEDYDATA:log_line})\]
+
+VARNISH_LOG %{IP:remoteip} \[%{HTTPDATE:timestamp}\] "%{WORD:requestmethod} %{NOTSPACE:request} HTTP/%{NUMBER:httpversion}" (?:%{NUMBER:status}|\(null\)) (?:%{NUMBER:bytes}|-) %{WORD:agent} (?:%{NOTSPACE:referrer}|-)

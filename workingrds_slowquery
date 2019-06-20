@@ -1,0 +1,83 @@
+filter{
+if [type] == "rds" {
+    mutate {
+	uppercase => [ "message" ]
+    }
+
+    grok {
+    match => { "message" => ["^# USER@HOST: %{USER:mysql_user}(?:\[[^\]]+\])?\s+@\s+%{HOSTNAME:mysql_client_host}?\s+\[%{IP:mysql_client_ip}?\]"]}
+  }
+    grok {
+    match => { "message" => ["^# QUERY_TIME: %{NUMBER:query_duration_s:float}\s+LOCK_TIME: %{NUMBER:lock_wait_s:float} ROWS_SENT: %{NUMBER:query_sent_rows:int} \s*ROWS_EXAMINED: %{NUMBER:query_examined_rows:int}"]}
+  }
+    grok {
+    match => { "message" => ["^SET TIMESTAMP=%{NUMBER:timestamp};"]}
+  }
+
+ mutate {
+           copy => { "message" => "message_val" }
+           }
+
+
+mutate {
+           gsub => [ "message_val", "\n","ABCD" ]
+           }
+
+mutate {
+          split => { "message_val" => 'ABCD' }
+add_field => { "fullQuery" => "%{message_val[4]}" }
+           }
+
+
+ date {
+    match => [ "timestamp", "UNIX" ]
+  }
+  # Capture the tablename
+  grok {
+    match => {
+      "message" => [
+        "FROM %{NOTSPACE:query_table}.*",
+        "^UPDATE %{NOTSPACE:query_table}.*",
+        "^INSERT INTO %{NOTSPACE:query_table}.*",
+        "^DELETE FROM %{NOTSPACE:query_table}.*"
+      ]
+    }
+  }
+
+
+if "SELECT" in [message] {
+   mutate {
+            add_field => { "query_type" => "SELECT" }
+   }
+}
+else if "UPDATE " in [message]{
+   mutate {
+            add_field => { "query_type" => "UPDATE" }
+   }
+}
+else if "INSERT INTO " in [message]{
+   mutate {
+            add_field => { "query_type" => "INSERT" }
+   }
+}
+else if "DELETE FROM " in [message]{
+   mutate {
+            add_field => { "query_type" => "DELETE" }
+   }
+}
+
+#if [message] =~ /^# TIME:/ {
+#  drop { }
+#}
+
+  mutate { remove_field => [ "message", "message_val" ] }
+        mutate {
+             add_field => {
+                            "[@metadata][indexname]" => "rds-slowquery-logs"
+                     }
+          }
+#if "SET TIMESTAMP*" in [message] {
+#        drop {}
+#    }
+     }
+}

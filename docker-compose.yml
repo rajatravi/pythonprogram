@@ -1,0 +1,35 @@
+version: '2'
+
+services:
+  appplication:
+    image: nginxfront:latest
+    ports:
+      - "99:80"
+    links:
+      - tt-desktop:frontand.ttdev.in
+      - tt-web:frontand.ttdev.in
+    networks:
+      - bridge
+    volumes:
+      - /log:/var/log/nginx/
+
+  tt-desktop:
+    image: trips3mdesktopimg:latest
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./data:/data/db
+    networks: 
+      - bridge
+
+  tt-web:
+    image: trips3mwebimg:latest
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./data:/data/db
+    networks:
+      - bridge
+
